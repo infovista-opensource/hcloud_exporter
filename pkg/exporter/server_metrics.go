@@ -37,7 +37,7 @@ func NewServerMetricsCollector(logger *slog.Logger, client *hcloud.Client, failu
 		failures.WithLabelValues("server_metrics").Add(0)
 	}
 
-	labels := []string{"id", "name", "datacenter"}
+	labels := []string{"id", "name", "datacenter", "network"}
 	diskLabels := append(labels, "disk")
 	networkLabels := append(labels, "interface")
 	return &ServerMetricsCollector{
@@ -153,7 +153,7 @@ func (c *ServerMetricsCollector) Collect(ch chan<- prometheus.Metric) {
 	})
 
 	if err != nil {
-		c.logger.Error("Failed to fetch servers",
+		c.logger.Error("Failed to fetch servers - API ERROR",
 			"err", err,
 		)
 
@@ -161,19 +161,26 @@ func (c *ServerMetricsCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	c.logger.Debug("Fetched online servers",
-		"count", len(servers),
-	)
-
 	var (
 		wg sync.WaitGroup
 	)
 
 	for _, server := range servers {
+		// Set network label based on whether server is in a private network
+		network := "public"
+		if len(server.PrivateNet) > 0 {
+			network = strconv.FormatInt(server.PrivateNet[0].Network.ID, 10)
+			c.logger.Info("Server is in private network",
+				"server", server.Name,
+				"network ID", network,
+			)
+		}
+
 		labels := []string{
 			strconv.FormatInt(server.ID, 10),
 			server.Name,
 			server.Datacenter.Name,
+			network,
 		}
 
 		wg.Add(1)

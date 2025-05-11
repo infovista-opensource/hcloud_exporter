@@ -4,3 +4,9 @@ coverage.out
 
 /bin
 /dist
+
+# Development container local files
+.devcontainer/devcontainer.env.local
+.env.local
+.env
+local.env

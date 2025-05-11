@@ -38,7 +38,7 @@ func NewServerCollector(logger *slog.Logger, client *hcloud.Client, failures *pr
 		failures.WithLabelValues("server").Add(0)
 	}
 
-	labels := []string{"id", "name", "datacenter"}
+	labels := []string{"id", "name", "datacenter", "network"}
 	pricingLabels := append(labels, "vat")
 	return &ServerCollector{
 		client:   client,
@@ -172,12 +172,26 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, server := range servers {
 		var (
 			running float64
+			network string
 		)
+
+		// Set network label based on whether server is in a private network
+		// If it has private networks, use the ID of the first one, otherwise use "public"
+		if len(server.PrivateNet) > 0 {
+			network = strconv.FormatInt(server.PrivateNet[0].Network.ID, 10)
+			c.logger.Info("Server is in private network",
+				"server", server.Name,
+				"network ID", network,
+			)
+		} else {
+			network = "public"
+		}
 
 		labels := []string{
 			strconv.FormatInt(server.ID, 10),
 			server.Name,
 			server.Datacenter.Name,
+			network,
 		}
 
 		if server.Status == "running" {
@@ -252,8 +266,21 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 			labels...,
 		)
 
-		labelsNet := append(labels, "net")
-		labelsGross := append(labels, "gross")
+		// Create correct pricing labels that include both network and vat
+		pricingLabelsNet := []string{
+			strconv.FormatInt(server.ID, 10),
+			server.Name,
+			server.Datacenter.Name,
+			network,
+			"net",
+		}
+		pricingLabelsGross := []string{
+			strconv.FormatInt(server.ID, 10),
+			server.Name,
+			server.Datacenter.Name,
+			network,
+			"gross",
+		}
 
 		for _, pricing := range server.ServerType.Pricings {
 			if server.Datacenter.Location.Name == pricing.Location.Name {
@@ -269,7 +296,7 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 						c.PriceHourly,
 						prometheus.GaugeValue,
 						net,
-						labelsNet...,
+						pricingLabelsNet...,
 					)
 				}
 
@@ -285,7 +312,7 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 						c.PriceHourly,
 						prometheus.GaugeValue,
 						gross,
-						labelsGross...,
+						pricingLabelsGross...,
 					)
 				}
 
@@ -301,7 +328,7 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 						c.PriceMonthly,
 						prometheus.GaugeValue,
 						net,
-						labelsNet...,
+						pricingLabelsNet...,
 					)
 				}
 
@@ -317,7 +344,7 @@ func (c *ServerCollector) Collect(ch chan<- prometheus.Metric) {
 						c.PriceMonthly,
 						prometheus.GaugeValue,
 						gross,
-						labelsGross...,
+						pricingLabelsGross...,
 					)
 				}
 			}

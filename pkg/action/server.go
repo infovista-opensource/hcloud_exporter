@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -228,7 +229,10 @@ func handler(cfg *config.Config, logger *slog.Logger, client *hcloud.Client) *ch
 
 	mux.Route("/", func(root chi.Router) {
 		root.Get(cfg.Server.Path, func(w http.ResponseWriter, r *http.Request) {
+			// Add debug statements to see when metrics endpoint is called
+			fmt.Println("\n\n🔴🔴🔴 METRICS ENDPOINT CALLED - COLLECTING METRICS 🔴🔴🔴\n\n")
 			reg.ServeHTTP(w, r)
+			fmt.Println("\n\n🔴🔴🔴 METRICS COLLECTION FINISHED 🔴🔴🔴\n\n")
 		})
 
 		root.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
