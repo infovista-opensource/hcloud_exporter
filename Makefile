@@ -52,8 +52,12 @@ GCFLAGS += all=-N -l
 all: build
 
 .PHONY: sync
-sync:
+sync: fix-perms
 	go mod download
+
+.PHONY: fix-perms
+fix-perms:
+	sudo chown -R $$(id -u):$$(id -g) /go/pkg/mod || true
 
 .PHONY: clean
 clean:
@@ -85,7 +89,7 @@ changelog: $(CALENS)
 	$(CALENS) >| CHANGELOG.md
 
 .PHONY: test
-test:
+test: fix-perms
 	go test -coverprofile coverage.out $(PACKAGES)
 
 .PHONY: install
@@ -93,7 +97,7 @@ install: $(SOURCES)
 	go install -v -tags '$(TAGS)' -ldflags '$(LDFLAGS)' ./cmd/$(NAME)
 
 .PHONY: build
-build: $(BIN)/$(EXECUTABLE)
+build: fix-perms $(BIN)/$(EXECUTABLE)
 
 $(BIN)/$(EXECUTABLE): $(SOURCES)
 	$(GOBUILD) -v -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $@ ./cmd/$(NAME)

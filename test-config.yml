@@ -1,0 +1,24 @@
+# Sample configuration file for debugging
+---
+log:
+  level: debug
+  pretty: true
+
+web:
+  address: ':9501'
+  path: /metrics
+  timeout: 10s
+  
+targets:
+  - name: hetzner-cloud
+    token: ${HCLOUD_TOKEN}  # Will use the environment variable
+    timeout: 5s
+    collectors:
+      - floating-ip
+      - image
+      - load-balancer
+      - pricing
+      - server
+      - server-metrics
+      - ssh-key
+      - volume

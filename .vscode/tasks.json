@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Debug Binary",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "bin/hcloud_exporter-debug"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$go"
+    }
+  ]
+}
